@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenAI } from "@google/genai";
 
 // Simple in-memory IP cache to prevent spamming
 const ipCache = new Map<string, number[]>();
@@ -42,22 +41,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const geminiKey = process.env.GEMINI_API_KEY;
-    if (!geminiKey) {
+    const bankrApiKey = process.env.BANKR_API_KEY;
+    if (!bankrApiKey) {
       return NextResponse.json(
-        { error: "GEMINI_API_KEY is not configured on the server." },
+        { error: "BANKR_API_KEY is not configured on the server." },
         { status: 500 }
       );
     }
-
-    const ai = new GoogleGenAI({
-      apiKey: geminiKey,
-      httpOptions: {
-        headers: {
-          "User-Agent": "aistudio-build",
-        },
-      },
-    });
 
     // Clean up base64 string and extract MIME type
     let base64Data = image;
@@ -70,7 +60,7 @@ export async function POST(req: NextRequest) {
       base64Data = image.split("base64,")[1];
     }
 
-    console.log(`Analyzing image and generating descriptive prompt for style: ${style}, accessory: ${accessory}`);
+    console.log(`Analyzing image and generating descriptive prompt via Bankr for style: ${style}, accessory: ${accessory}`);
 
     const instructionsText = `You are an expert prompt engineer for Imagen. Analyze this uploaded photo and describe the main subject (e.g., facial features, hair, gender, expression, ethnicity, accessories like glasses).
           
@@ -89,163 +79,89 @@ export async function POST(req: NextRequest) {
     let generatedPrompt = "";
     let promptSuccess = false;
 
-    // Step 1: Use Bankr LLM Gateway first (extremely cheap & bypasses primary key 503 errors)
-    const bankrApiKey = process.env.BANKR_API_KEY;
-    if (bankrApiKey) {
-      try {
-        console.log("Attempting ultra-economical Bankr LLM Gateway prompt generation...");
-        // Use gemini-3.1-flash-lite (the ultra-fast, ultra-economical $0.25/1M token model supporting image inputs)
-        const bankrResponse = await fetch("https://llm.bankr.bot/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-API-Key": bankrApiKey,
-          },
-          body: JSON.stringify({
-            model: "gemini-3.1-flash-lite",
-            messages: [
-              {
-                role: "user",
-                content: [
-                  {
-                    type: "text",
-                    text: instructionsText
-                  },
-                  {
-                    type: "image_url",
-                    image_url: {
-                      url: `data:${mimeType};base64,${base64Data}`
-                    }
-                  }
-                ]
-              }
-            ]
-          })
-        });
-
-        if (bankrResponse.ok) {
-          const bankrData = await bankrResponse.json();
-          const content = bankrData.choices?.[0]?.message?.content;
-          if (content) {
-            generatedPrompt = content.trim();
-            promptSuccess = true;
-            console.log("Successfully generated descriptive prompt using Bankr LLM Gateway (gemini-3.1-flash-lite)!");
-          }
-        } else {
-          const errMsg = await bankrResponse.text();
-          console.warn(`Bankr LLM Gateway returned status ${bankrResponse.status}: ${errMsg}`);
-        }
-      } catch (bankrErr: any) {
-        console.log("Bankr LLM Gateway did not complete prompt generation. Using primary instead...");
-      }
-    }
-
-    // Fallback to primary Google GenAI if Bankr was skipped or failed
-    if (!promptSuccess) {
-      const modelsToTry = ["gemini-3.1-flash-lite", "gemini-3.5-flash", "gemini-2.5-flash"];
-      for (const modelName of modelsToTry) {
-        try {
-          console.log(`Re-imagine Prompt Step: Trying primary model ${modelName}...`);
-          const promptResponse = await ai.models.generateContent({
-            model: modelName,
-            contents: [
-              {
-                inlineData: {
-                  mimeType: mimeType,
-                  data: base64Data,
+    // Use Bankr LLM Gateway (gemini-3.1-flash-lite)
+    try {
+      console.log("Attempting Bankr LLM Gateway prompt generation...");
+      const bankrResponse = await fetch("https://llm.bankr.bot/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-API-Key": bankrApiKey,
+        },
+        body: JSON.stringify({
+          model: "gemini-3.1-flash-lite",
+          messages: [
+            {
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text: instructionsText
                 },
-              },
-              {
-                text: instructionsText,
-              },
-            ],
-          });
+                {
+                  type: "image_url",
+                  image_url: {
+                    url: `data:${mimeType};base64,${base64Data}`
+                  }
+                }
+              ]
+            }
+          ]
+        })
+      });
 
-          if (promptResponse.text) {
-            generatedPrompt = promptResponse.text.trim();
-            promptSuccess = true;
-            console.log(`Successfully generated descriptive prompt with primary model: ${modelName}`);
-            break;
-          }
-        } catch (modelErr: any) {
-          console.log(`Prompt generation model ${modelName} did not complete. Trying next model...`);
-          await new Promise((resolve) => setTimeout(resolve, 500));
+      if (bankrResponse.ok) {
+        const bankrData = await bankrResponse.json();
+        const content = bankrData.choices?.[0]?.message?.content;
+        if (content) {
+          generatedPrompt = content.trim();
+          promptSuccess = true;
+          console.log("Successfully generated descriptive prompt using Bankr LLM Gateway (gemini-3.1-flash-lite)!");
         }
+      } else {
+        const errMsg = await bankrResponse.text();
+        console.warn(`Bankr LLM Gateway returned status ${bankrResponse.status}: ${errMsg}`);
       }
+    } catch (bankrErr: any) {
+      console.error("Bankr LLM Gateway did not complete prompt generation:", bankrErr);
     }
 
     if (!promptSuccess || !generatedPrompt) {
-      throw new Error("Failed to generate descriptive prompt using any of the available models.");
+      throw new Error("Failed to generate descriptive prompt using Bankr LLM Gateway.");
     }
 
     console.log("Generated Imagen Prompt:", generatedPrompt);
 
     // Step 2: Generate the image.
-    // Prioritize free models first to save user costs, then fall back to premium options if those fail or are rate-limited.
     let finalBase64 = "";
     let drawSuccess = false;
 
     console.log("Attempting image drawing...");
 
-    // Model 1 (FREE): Try gemini-3.1-flash-lite-image (Completely free Google tier model)
+    // Generator 1 (FREE): Pollinations AI (Completely free, fast, unlimited, requires no API key)
     try {
-      console.log("Attempting gemini-3.1-flash-lite-image (FREE)...");
-      const drawResponse = await ai.models.generateContent({
-        model: "gemini-3.1-flash-lite-image",
-        contents: {
-          parts: [
-            {
-              text: generatedPrompt,
-            },
-          ],
-        },
-        config: {
-          imageConfig: {
-            aspectRatio: "1:1",
-          },
-        },
-      });
+      console.log("Attempting Pollinations AI image generation (FREE)...");
+      const pollResponse = await fetch(
+        `https://image.pollinations.ai/prompt/${encodeURIComponent(generatedPrompt)}?width=1024&height=1024&nologo=true&private=true&enhance=false`
+      );
 
-      if (drawResponse.candidates?.[0]?.content?.parts) {
-        for (const part of drawResponse.candidates[0].content.parts) {
-          if (part.inlineData && part.inlineData.data) {
-            finalBase64 = `data:image/png;base64,${part.inlineData.data}`;
-            drawSuccess = true;
-            console.log("Successfully drew image with gemini-3.1-flash-lite-image (FREE)!");
-            break;
-          }
-        }
+      if (pollResponse.ok) {
+        const arrayBuffer = await pollResponse.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        finalBase64 = `data:image/jpeg;base64,${buffer.toString("base64")}`;
+        drawSuccess = true;
+        console.log("Successfully drew image with Pollinations AI (FREE)!");
+      } else {
+        console.error(`Pollinations AI returned bad status: ${pollResponse.status}`);
       }
-    } catch (err: any) {
-      console.log("Model gemini-3.1-flash-lite-image did not return an image. Transitioning to next free fallback...");
+    } catch (pollErr: any) {
+      console.error("Pollinations generator failed:", pollErr);
     }
 
-    // Model 2 (FREE & BULLETPROOF): Pollinations AI (Completely free, fast, unlimited, requires no API key)
+    // Generator 2 (BANKR): Try Bankr LLM Gateway (gpt-image-2)
     if (!drawSuccess) {
       try {
-        console.log("Attempting Pollinations AI image generation (FREE)...");
-        const pollResponse = await fetch(
-          `https://image.pollinations.ai/prompt/${encodeURIComponent(generatedPrompt)}?width=1024&height=1024&nologo=true&private=true&enhance=false`
-        );
-
-        if (pollResponse.ok) {
-          const arrayBuffer = await pollResponse.arrayBuffer();
-          const buffer = Buffer.from(arrayBuffer);
-          finalBase64 = `data:image/jpeg;base64,${buffer.toString("base64")}`;
-          drawSuccess = true;
-          console.log("Successfully drew image with Pollinations AI (FREE) fallback!");
-        } else {
-          console.error(`Pollinations AI returned bad status: ${pollResponse.status}`);
-        }
-      } catch (pollErr: any) {
-        console.log("Pollinations generator did not complete. Transitioning to paid fallbacks...");
-      }
-    }
-
-    // Model 3 (PAID / BUDGET): Try Bankr LLM Gateway (gpt-image-2) - ultra-economical, uses user's Bankr credits
-    if (!drawSuccess && bankrApiKey) {
-      try {
-        console.log("Attempting Bankr LLM Gateway image generation (gpt-image-2) [PAID fallback]...");
+        console.log("Attempting Bankr LLM Gateway image generation (gpt-image-2)...");
         const bankrImageResponse = await fetch("https://llm.bankr.bot/v1/images/generations", {
           method: "POST",
           headers: {
@@ -270,66 +186,14 @@ export async function POST(req: NextRequest) {
               finalBase64 = `data:image/png;base64,${base64Json}`;
             }
             drawSuccess = true;
-            console.log("Successfully drew image with Bankr LLM Gateway (gpt-image-2) fallback!");
+            console.log("Successfully drew image with Bankr LLM Gateway (gpt-image-2)!");
           }
         } else {
           const errMsg = await bankrImageResponse.text();
-          console.log(`Bankr Image Gateway did not return success (${bankrImageResponse.status}): ${errMsg}`);
+          console.warn(`Bankr Image Gateway did not return success (${bankrImageResponse.status}): ${errMsg}`);
         }
       } catch (bankrImgErr: any) {
-        console.log("Bankr image generation did not complete. Transitioning to premium fallbacks...");
-      }
-    }
-
-    // Model 4 (PAID): Try Google GenAI imagen-4.0-generate-001 (Requires paid tier / premium billing plan)
-    if (!drawSuccess) {
-      try {
-        console.log("Attempting imagen-4.0-generate-001 [PAID fallback]...");
-        const imagenResponse = await ai.models.generateImages({
-          model: "imagen-4.0-generate-001",
-          prompt: generatedPrompt,
-          config: {
-            numberOfImages: 1,
-            outputMimeType: "image/jpeg",
-            aspectRatio: "1:1",
-          },
-        });
-
-        const generatedImageObj = imagenResponse.generatedImages?.[0];
-        const imageBytes = generatedImageObj?.image?.imageBytes || (generatedImageObj as any)?.imageBytes;
-        if (imageBytes) {
-          finalBase64 = `data:image/jpeg;base64,${imageBytes}`;
-          drawSuccess = true;
-          console.log("Successfully drew image with imagen-4.0-generate-001!");
-        }
-      } catch (err: any) {
-        console.log("Model imagen-4.0-generate-001 did not return an image. Transitioning to final fallback...");
-      }
-    }
-
-    // Model 5 (PAID): Try Google GenAI imagen-3.0-generate-002 (Requires paid tier / premium billing plan)
-    if (!drawSuccess) {
-      try {
-        console.log("Attempting imagen-3.0-generate-002 [PAID fallback]...");
-        const imagenResponse = await ai.models.generateImages({
-          model: "imagen-3.0-generate-002",
-          prompt: generatedPrompt,
-          config: {
-            numberOfImages: 1,
-            outputMimeType: "image/jpeg",
-            aspectRatio: "1:1",
-          },
-        });
-
-        const generatedImageObj = imagenResponse.generatedImages?.[0];
-        const imageBytes = generatedImageObj?.image?.imageBytes || (generatedImageObj as any)?.imageBytes;
-        if (imageBytes) {
-          finalBase64 = `data:image/jpeg;base64,${imageBytes}`;
-          drawSuccess = true;
-          console.log("Successfully drew image with imagen-3.0-generate-002 fallback!");
-        }
-      } catch (err: any) {
-        console.log("Model imagen-3.0-generate-002 did not return an image.");
+        console.error("Bankr image generation failed:", bankrImgErr);
       }
     }
 
