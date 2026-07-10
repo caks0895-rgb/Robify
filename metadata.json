@@ -1,0 +1,8 @@
+{
+  "name": "Remix: Green Hood Generator",
+  "description": "Automatically generated your images to a hoodie format and organize them into specific art",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
