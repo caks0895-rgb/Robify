@@ -1,5 +1,5 @@
 import type {Metadata} from 'next';
-import { Plus_Jakarta_Sans, Space_Grotesk, JetBrains_Mono } from 'next/font/google';
+import { Plus_Jakarta_Sans, Cinzel, JetBrains_Mono } from 'next/font/google';
 import './globals.css'; // Global styles
 
 const sans = Plus_Jakarta_Sans({
@@ -8,10 +8,10 @@ const sans = Plus_Jakarta_Sans({
   weight: ['400', '500', '600', '700', '800'],
 });
 
-const display = Space_Grotesk({
+const display = Cinzel({
   subsets: ['latin'],
   variable: '--font-display',
-  weight: ['400', '500', '600', '700'],
+  weight: ['400', '500', '600', '700', '800'],
 });
 
 const mono = JetBrains_Mono({
