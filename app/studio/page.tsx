@@ -188,7 +188,10 @@ export default function StudioPage() {
         };
 
         const handleChainChanged = (hexChainId: any) => {
-          const parsedId = parseInt(hexChainId, 16).toString();
+          // Robust decimal/hex chain ID parsing
+          const parsedId = typeof hexChainId === "string" 
+            ? (hexChainId.startsWith("0x") ? parseInt(hexChainId, 16).toString() : hexChainId)
+            : String(hexChainId);
           setChainId(parsedId);
         };
 
@@ -242,7 +245,13 @@ export default function StudioPage() {
         params: [{ chainId: "0x2105" }], // 8453 (Base Mainnet) in hex
       });
     } catch (switchError: any) {
-      if (switchError.code === 4902) {
+      const isUnrecognized = 
+        switchError.code === 4902 || 
+        switchError.code === -32603 ||
+        (switchError.message && switchError.message.toLowerCase().includes("unrecognized")) ||
+        (switchError.message && switchError.message.toLowerCase().includes("add"));
+      
+      if (isUnrecognized) {
         try {
           await (window as any).ethereum.request({
             method: "wallet_addEthereumChain",
@@ -263,8 +272,9 @@ export default function StudioPage() {
         } catch (addError) {
           console.error("Failed to add Base network:", addError);
         }
+      } else {
+        console.error("Failed to switch network:", switchError);
       }
-      console.error("Failed to switch network:", switchError);
     }
   };
 
@@ -276,7 +286,13 @@ export default function StudioPage() {
         params: [{ chainId: "0x1237" }], // 4663 (Robinhood Chain) in hex
       });
     } catch (switchError: any) {
-      if (switchError.code === 4902) {
+      const isUnrecognized = 
+        switchError.code === 4902 || 
+        switchError.code === -32603 ||
+        (switchError.message && switchError.message.toLowerCase().includes("unrecognized")) ||
+        (switchError.message && switchError.message.toLowerCase().includes("add"));
+      
+      if (isUnrecognized) {
         try {
           await (window as any).ethereum.request({
             method: "wallet_addEthereumChain",
@@ -297,8 +313,9 @@ export default function StudioPage() {
         } catch (addError) {
           console.error("Failed to add Robinhood Chain network:", addError);
         }
+      } else {
+        console.error("Failed to switch network:", switchError);
       }
-      console.error("Failed to switch network:", switchError);
     }
   };
 

@@ -226,6 +226,41 @@ export default function MemeGeneratorPage() {
         }
       };
       checkConnection();
+
+      // Listen to changes
+      const handleAccountsChanged = async (accounts: any[]) => {
+        if (accounts.length > 0) {
+          setWalletAddress(accounts[0]);
+          try {
+            const { BrowserProvider, formatEther } = await import("ethers");
+            const provider = new BrowserProvider((window as any).ethereum);
+            const balanceObj = await provider.getBalance(accounts[0]);
+            const formattedBalance = parseFloat(formatEther(balanceObj)).toFixed(4);
+            setWalletBalance(`${formattedBalance} ETH`);
+          } catch (err) {
+            console.warn("Error updating balance on account change:", err);
+          }
+        } else {
+          setWalletAddress(null);
+          setWalletBalance(null);
+        }
+      };
+
+      const handleChainChanged = (hexChainId: any) => {
+        // Robust decimal/hex chain ID parsing
+        const parsedId = typeof hexChainId === "string" 
+          ? (hexChainId.startsWith("0x") ? parseInt(hexChainId, 16).toString() : hexChainId)
+          : String(hexChainId);
+        setChainId(parsedId);
+      };
+
+      (window as any).ethereum.on("accountsChanged", handleAccountsChanged);
+      (window as any).ethereum.on("chainChanged", handleChainChanged);
+
+      return () => {
+        (window as any).ethereum.removeListener("accountsChanged", handleAccountsChanged);
+        (window as any).ethereum.removeListener("chainChanged", handleChainChanged);
+      };
     }
   }, []);
 
@@ -264,10 +299,16 @@ export default function MemeGeneratorPage() {
     try {
       await (window as any).ethereum.request({
         method: "wallet_switchEthereumChain",
-        params: [{ chainId: "0x2105" }],
+        params: [{ chainId: "0x2105" }], // 8453 (Base Mainnet) in hex
       });
     } catch (switchError: any) {
-      if (switchError.code === 4902) {
+      const isUnrecognized = 
+        switchError.code === 4902 || 
+        switchError.code === -32603 ||
+        (switchError.message && switchError.message.toLowerCase().includes("unrecognized")) ||
+        (switchError.message && switchError.message.toLowerCase().includes("add"));
+      
+      if (isUnrecognized) {
         try {
           await (window as any).ethereum.request({
             method: "wallet_addEthereumChain",
@@ -284,6 +325,8 @@ export default function MemeGeneratorPage() {
         } catch (addError) {
           console.error("Failed to add Base network:", addError);
         }
+      } else {
+        console.error("Failed to switch network:", switchError);
       }
     }
   };
@@ -296,7 +339,13 @@ export default function MemeGeneratorPage() {
         params: [{ chainId: "0x1237" }], // 4663 in hex
       });
     } catch (switchError: any) {
-      if (switchError.code === 4902) {
+      const isUnrecognized = 
+        switchError.code === 4902 || 
+        switchError.code === -32603 ||
+        (switchError.message && switchError.message.toLowerCase().includes("unrecognized")) ||
+        (switchError.message && switchError.message.toLowerCase().includes("add"));
+      
+      if (isUnrecognized) {
         try {
           await (window as any).ethereum.request({
             method: "wallet_addEthereumChain",
@@ -313,6 +362,8 @@ export default function MemeGeneratorPage() {
         } catch (addError) {
           console.error("Failed to add Robinhood Chain network:", addError);
         }
+      } else {
+        console.error("Failed to switch network:", switchError);
       }
     }
   };
