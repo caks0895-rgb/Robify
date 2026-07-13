@@ -5,7 +5,7 @@ const ipCache = new Map<string, number[]>();
 
 export async function POST(req: NextRequest) {
   try {
-    const { image, style, accessory, isPremium } = await req.json();
+    const { image, style, accessory, customColor, isPremium } = await req.json();
 
     if (!image) {
       return NextResponse.json(
@@ -57,13 +57,21 @@ export async function POST(req: NextRequest) {
       base64Data = image.split("base64,")[1];
     }
 
-    console.log(`Analyzing image and generating descriptive prompt via Bankr for style: ${style}, accessory: ${accessory}`);
+    console.log(`Analyzing image and generating descriptive prompt via Bankr for style: ${style}, accessory: ${accessory}, customColor: ${customColor}`);
 
-    const instructionsText = `You are an expert prompt engineer for Imagen. Analyze this uploaded photo and describe the main subject (e.g., facial features, hair, gender, expression, ethnicity, accessories like glasses).
+    let hoodPrompt = "";
+    if (accessory === "custom") {
+      const sanitizedColor = (customColor || "golden").replace(/[^a-zA-Z0-9\s#-]/g, "");
+      hoodPrompt = `The absolute most important requirement: The main subject MUST be wearing a custom-colored, cozy ${sanitizedColor} hoodie with the hood pulled up snugly over their head. The hood must cover their hair/head but frame their face perfectly, keeping their face, exact expression, and features fully recognizable and faithful to the uploaded photo.`;
+    } else {
+      hoodPrompt = `The absolute most important requirement: The main subject MUST be wearing an iconic bright stabilo green (neon lime green, Hex #00C805) hoodie with the hood pulled up snugly over their head. There MUST be a small, distinctive black and white feather (Robinhood style) sticking out from the side of the hood. The hood must cover their hair/head but frame their face perfectly, keeping their face, exact expression, and features fully recognizable and faithful to the uploaded photo.`;
+    }
+
+    const instructionsText = `You are an expert prompt engineer for Imagen. Analyze the entire uploaded photo with maximum precision, scanning the subject's face, posture, clothing style, original pose, expression, and the background details.
           
-    Then, write a highly detailed, professional, single-paragraph image generation prompt that will recreate this exact subject in the following style: "${style}".
+    Write a highly detailed, professional, single-paragraph image generation prompt that recreates the exact subject, composition, posture, background, and facial features of this photo in the style: "${style}".
     
-    The most important requirement: The subject MUST be wearing an iconic medieval Robinhood-style ${accessory === "hat" ? "pointed archer hat with a tiny red feather" : "cozy cowl hood"} that is bright emerald green (solid #00FF00 hue). The hood/hat must cover their head/hair perfectly but leave their face completely visible and recognizable.
+    ${hoodPrompt}
     
     Style guidelines:
     - If style is "normal": The output should be a highly realistic, photorealistic, professional studio portrait, with clean studio lighting, realistic skin textures, 8k resolution, cinematic atmosphere.
@@ -71,6 +79,8 @@ export async function POST(req: NextRequest) {
     - If style is "cartoon": It must be styled exactly as a classic retro 1960s pop-art comic book illustration. Use heavy, bold black ink outlines, high-contrast flat primary colors, retro screen-tones, a distinctive halftone dot pattern (ben-day dots), and a highly energetic, vintage comic panel aesthetic. The character must look like an iconic comic book print with a hand-drawn retro feel.
     - If style is "pixel": It must be a genuine, stunning retro 8-bit or 16-bit video game character sprite avatar. Use crisp grid-aligned visible pixels, a limited nostalgic arcade color palette, hard pixelated edges, clean black outline framing, and classic retro RPG dialogue box portrait geometry. Do not include smooth gradients; use authentic retro pixelated dithering.
     
+    CRITICAL CONSTRAINT: Since the requested style is "${style}", you MUST NOT use words like "photo", "photograph", "realistic", "photorealistic", "real life", "camera", "lens", or "shot" if the style is "meme", "cartoon", or "pixel". Focus entirely on drawing, illustration, vectors, pixels, halftone dots, or ink styles as described above.
+
     Output ONLY the final descriptive prompt paragraph. Do not include any prefix, introduction, or conversational filler. Keep it to one concise paragraph of 70-100 words.`;
 
     let generatedPrompt = "";
@@ -126,11 +136,48 @@ export async function POST(req: NextRequest) {
     }
 
     if (!promptSuccess || !generatedPrompt) {
-      generatedPrompt = `A detailed professional photo portrait of a person in "${style}" style, wearing an iconic bright emerald green Robinhood cowl hood covering their head, realistic lighting, highly detailed face.`;
+      if (accessory === "custom") {
+        const sanitizedColor = (customColor || "golden").replace(/[^a-zA-Z0-9\s#-]/g, "");
+        generatedPrompt = `A detailed professional portrait of a person in "${style}" style, wearing a custom-colored, cozy ${sanitizedColor} hoodie with the hood pulled up snugly over their head, highly detailed face, perfectly matching the composition.`;
+      } else {
+        generatedPrompt = `A detailed professional portrait of a person in "${style}" style, wearing an iconic bright stabilo green (neon lime green, Hex #00C805) hoodie with the hood pulled up snugly, and a small black and white feather sticking out from the side of the hood, highly detailed face, perfectly matching the composition.`;
+      }
       promptSuccess = true;
     }
 
-    console.log("Generated Imagen Prompt:", generatedPrompt);
+    // Define robust style prefix and suffix to prevent image generator from ignoring the selected style
+    let stylePrefix = "";
+    let styleSuffix = "";
+    if (style === "pixel") {
+      stylePrefix = "A genuine, stunning retro 16-bit pixel art style video game sprite avatar, of a ";
+      styleSuffix = ". This MUST be in authentic retro 16-bit pixel art style with visible grid-aligned square pixels, hard pixelated edges, clean black outline framing, a limited nostalgic arcade color palette, and no smooth gradients.";
+    } else if (style === "cartoon") {
+      stylePrefix = "A classic retro 1960s pop-art comic book illustration, of a ";
+      styleSuffix = ". This MUST be in classic retro 1960s pop-art comic book illustration style with heavy bold black ink outlines, high-contrast flat primary colors, retro screen-tones, and a distinctive halftone ben-day dot pattern.";
+    } else if (style === "meme") {
+      stylePrefix = "A polished retro webcomic digital illustration with clean detailed hand-drawn ink outlines, of a ";
+      styleSuffix = ". This MUST be in a rich wide-angle situational retro webcomic digital illustration style with clean hand-drawn ink outlines, volumetric shading, rich dimensional detail, and deep atmospheric color depth.";
+    } else {
+      stylePrefix = "A highly realistic, photorealistic, professional 8k studio portrait, of a ";
+      styleSuffix = ". This MUST be in highly realistic photorealistic style, featuring clean studio lighting, realistic skin textures, 8k resolution, and cinematic atmosphere.";
+    }
+
+    // Clean up any photo-related keywords the LLM might have written if the style is a graphic art style
+    if (style !== "normal") {
+      generatedPrompt = generatedPrompt
+        .replace(/\b(photorealism|photorealistic|photograph|photography|photo|real-life|realistic portrait|hyperrealistic|realistic skin|studio lighting)\b/gi, "")
+        .replace(/\b(camera|lens|shot with|8k resolution|cinematic atmosphere)\b/gi, "");
+    }
+
+    // Reinforce key characteristics to ensure the image generators (Pollinations & Bankr) do not miss them
+    if (accessory !== "custom") {
+      generatedPrompt = `${stylePrefix}subject wearing an iconic, vibrant bright stabilo green (neon lime green, Hex #00C805) hoodie with the hood pulled up snugly over their head, and a prominent black-and-white feather sticking out of the side of the green hood. ${generatedPrompt}. The hoodie MUST be bright stabilo green (#00C805) and have a clear black and white feather sticking out from the side of the hood${styleSuffix}`;
+    } else {
+      const sanitizedColor = (customColor || "golden").replace(/[^a-zA-Z0-9\s#-]/g, "");
+      generatedPrompt = `${stylePrefix}subject wearing a custom-colored, cozy ${sanitizedColor} hoodie with the hood pulled up snugly over their head. ${generatedPrompt}. The hoodie MUST be colored ${sanitizedColor}${styleSuffix}`;
+    }
+
+    console.log("Generated Imagen Prompt (with reinforcement):", generatedPrompt);
 
     // Step 2: Generate the image.
     let finalBase64 = "";

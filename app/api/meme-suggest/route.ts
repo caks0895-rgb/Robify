@@ -11,12 +11,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const suggestSystemInstructions = `You are a legendary, hilarious internet meme creator and viral marketing expert.
-Your job is to generate a random, extremely funny, highly engaging, and relatable meme idea.
-It can be about crypto trading, blockchain, tech developer struggles, AI hypes, or hilarious everyday life situations.
-Focus on highly situational, dramatic, or ironic situations (e.g., "A trader celebrating a 5% gain on an altcoin while his main portfolio is down 90%", "A programmer spending 6 hours to automate a task that takes 10 seconds to do manually").
-Keep the output extremely short (under 25 words), punchy, and direct.
-Do NOT include any quotation marks, introductory text, introductory phrases (like "Here is a meme:"), or formatting. Just output the raw, hilarious descriptive idea directly.`;
+    const suggestSystemInstructions = `You are an unhinged, legendary crypto and internet meme creator.
+Your job is to generate a random, extremely funny, chaotic, and relatable meme idea based on Web3, crypto trading, developer panic, or AI hype.
+Focus on highly dramatic, ironic, or absurd situations (e.g., "A trader frantically drawing green candle lines with a green crayon directly on his laptop screen during a crash", "A developer panicking because he pushed his API key to GitHub and now robots are mining memecoins on his server", "A trader crying while holding a burning trashcan labeled 'My Portfolio' but smiling because he has 10 followers on X").
+Keep the output under 25 words, extremely punchy, funny, and direct. No quotes, intro, or formatting. Just output the raw idea directly.`;
 
     console.log("[Meme Suggest API] Requesting random meme idea from Bankr LLM...");
 

@@ -5,11 +5,27 @@ const ipCache = new Map<string, number[]>();
 
 export async function POST(req: NextRequest) {
   try {
-    const { prompt, formulaType, customSubject, customColor, customBgColor, isPremium } = await req.json();
+    const { 
+      prompt, 
+      formulaType, 
+      customSubject, 
+      customColor, 
+      customBgColor, 
+      isPremium,
+      expression,
+      activity,
+      atmosphere,
+      background 
+    } = await req.json();
 
-    if (!prompt) {
+    const isStructured = !!(expression || activity || atmosphere || background);
+    const resolvedPrompt = isStructured 
+      ? `Expression: ${expression || "blank, minimalist NPC face"}. Activity: ${activity || "standing still"}. Atmosphere: ${atmosphere || "calm"}. Background: ${background || "simple flat color bg"}.`
+      : prompt;
+
+    if (!resolvedPrompt) {
       return NextResponse.json(
-        { error: "Meme prompt is required" },
+        { error: "Meme prompt or structured elements are required" },
         { status: 400 }
       );
     }
@@ -47,40 +63,76 @@ export async function POST(req: NextRequest) {
     const bankrApiKey = process.env.BANKR_API_KEY;
 
     // LOCKED visual formula blocks from the build specification
-    const STYLE_BLOCK = `STYLE: Polished retro webcomic digital illustration, clean detailed hand-drawn ink outlines, rich dimensional and volumetric shading, subtle gradients, atmospheric depth, warm and cool glowing light sources, deep cinematic ambient lighting with dark purple, gold, and dark blue tones. It is a full wide-angle situational scene featuring multiple similar cartoon characters in a highly detailed room or setting. Avoid: flat cel-shading, crude doodles, single character sticker cutouts, white sticker outlines, minimal flat backgrounds, photorealism, plain backdrops.`;
+    const STYLE_BLOCK = `STYLE: MS Paint style, low-fidelity digital drawing. Extremely bad, rough, ugly, and low quality. Very bold, jagged, shaky, hand-drawn black outlines that look like they were drawn by a young child or with a shaky computer mouse. Strictly flat, solid color blocks only. ABSOLUTELY NO gradients, NO soft blending, NO cinematic lighting, NO shadows, NO blending of colors. Limited, saturated old computer color palette. The character's face must be extremely simple, minimalist, ugly, blank, and hampa, resembling a basic Wojak or NPC meme. The output must feature jagged pixels, low resolution output, and digital artifacting.`;
 
     let subjectBlock = "";
     let backgroundBlock = "";
+    let characterDesc = "";
 
     if (formulaType === "green-hoodie") {
-      subjectBlock = "SUBJECT: A primary cartoon creature wearing an oversized bright green hoodie (#00C805), hood down, drawstrings dangling loosely, warm brown skin, sitting at a table interacting in a detailed, busy scene filled with other similar cartoon characters.";
-      backgroundBlock = "BACKGROUND: A lavish, atmospheric room with gilded wall frame portraits, classical statues on pedestals, luxury ambient dark navy and purple lighting, and rich classical interior details.";
+      characterDesc = "a simple, extremely ugly MS Paint cartoon mascot (warm brown skin/fur, blank minimalist hampa NPC expression) wearing a simple bright green hoodie (#00C805) with messy shaky black outlines, hood down";
+      subjectBlock = "SUBJECT: A simple, ugly hand-drawn cartoon mascot wearing a bright green hoodie (#00C805), hood down, with an extremely minimalist, blank hampa NPC expression, drawn with bold jagged shaky black outlines in bad MS Paint style.";
+      backgroundBlock = "BACKGROUND: An extremely simple, ugly, low-detail landscape with flat solid colors and basic shapes.";
     } else if (formulaType === "blue-hoodie") {
-      subjectBlock = "SUBJECT: A primary cartoon creature with beautiful, vibrant blue skin and deep-blue accents, no hoodie, sitting at a table interacting in a detailed, busy scene filled with other similar blue cartoon characters.";
-      backgroundBlock = "BACKGROUND: A sleek digital command center with glowing neon blue circuit tracks, holographic trading screens, steel-blue ambient lighting, and futuristic cybertech details.";
+      characterDesc = "a simple, extremely ugly MS Paint cartoon mascot (vibrant blue skin, deep-blue accents, blank minimalist hampa NPC expression) with no hoodie, drawn with messy shaky black outlines";
+      subjectBlock = "SUBJECT: A simple, ugly hand-drawn cartoon mascot with vibrant blue skin and deep-blue accents, no hoodie, with an extremely minimalist, blank hampa NPC expression, drawn with bold jagged shaky black outlines in bad MS Paint style.";
+      backgroundBlock = "BACKGROUND: An extremely simple, ugly, low-detail landscape with flat solid colors and basic shapes.";
     } else if (formulaType === "custom-hoodie") {
       const sanitizedSubject = (customSubject || "A cartoon creature").replace(/[^a-zA-Z0-9\s-]/g, "");
       const sanitizedColor = (customColor || "vibrant").replace(/[^a-zA-Z0-9\s#-]/g, "");
       const sanitizedBg = (customBgColor || "dark navy blue").replace(/[^a-zA-Z0-9\s#-]/g, "");
       
-      subjectBlock = `SUBJECT: ${sanitizedSubject} styled with ${sanitizedColor} color accents, interacting in a detailed, busy scene filled with other similar cartoon characters.`;
-      backgroundBlock = `BACKGROUND: A rich, atmospheric environment with ${sanitizedBg} ambient lighting, custom props, and detailed scenic decorations.`;
+      characterDesc = `a simple, extremely ugly MS Paint ${sanitizedSubject} (blank minimalist hampa NPC expression) with ${sanitizedColor} color accents, drawn with messy shaky black outlines`;
+      subjectBlock = `SUBJECT: A simple, ugly hand-drawn ${sanitizedSubject} with ${sanitizedColor} color accents, with an extremely minimalist, blank hampa NPC expression, drawn with bold jagged shaky black outlines in bad MS Paint style.`;
+      backgroundBlock = `BACKGROUND: An extremely simple, ugly, low-detail landscape with flat solid ${sanitizedBg} colors and basic shapes.`;
     } else {
-      subjectBlock = "SUBJECT: A primary cartoon creature wearing an oversized bright green hoodie (#00C805), hood down, drawstrings dangling loosely, warm brown skin, sitting at a table interacting in a detailed, busy scene filled with other similar cartoon characters.";
-      backgroundBlock = "BACKGROUND: A lavish, atmospheric room with gilded wall frame portraits, classical statues on pedestals, luxury ambient dark navy and purple lighting.";
+      characterDesc = "a simple, extremely ugly MS Paint cartoon mascot (warm brown skin/fur, blank minimalist hampa NPC expression) wearing a simple bright green hoodie (#00C805) with messy shaky black outlines, hood down";
+      subjectBlock = "SUBJECT: A simple, ugly hand-drawn cartoon mascot wearing a bright green hoodie (#00C805), hood down, with an extremely minimalist, blank hampa NPC expression, drawn with bold jagged shaky black outlines in bad MS Paint style.";
+      backgroundBlock = "BACKGROUND: An extremely simple, ugly, low-detail landscape with flat solid colors and basic shapes.";
     }
 
     // Call text LLM to interpret free-form action/pose/expression
-    let interpretedFragment = prompt;
+    let interpretedFragment = resolvedPrompt;
     let interpretationSuccess = false;
 
     if (bankrApiKey) {
       try {
-        const interpretationSystemInstructions = `You are a legendary AI prompt engineer specialized in creating viral web memes.
-Take the user's core meme idea: "${prompt}" and describe a rich, funny situational scene around it.
-Do not focus on just one standalone character. Instead, depict a lively scene with multiple characters interacting, filled with comedic details, room elements, props, and a cohesive dramatic situation (e.g., playing cards, trading on laptops, debating, celebrating, or panicking).
-Keep it under 50 words, highly descriptive, focusing entirely on physical setup, hilarious group interactions, exaggerated facial expressions of the characters, and physical objects/scenery.
-Do not describe any text, dialogue, watermarks, or user interface overlays. Output ONLY the descriptive physical scene fragment. No prefix, conversational filler, or quotes.`;
+        const interpretationSystemInstructions = `[ROLE]
+Anda adalah AI generator untuk gambar meme internet bergaya "MS Paint / Low-Fi Sketch". Tugas Anda adalah mengubah deskripsi pengguna menjadi gambar dengan estetika spesifik: kasar, minimalis, dan seperti buatan tangan menggunakan mouse.
+
+[STYLE RULES - WAJIB]
+1. STYLE: Hand-drawn MS Paint aesthetic.
+2. LINES: Gunakan garis hitam tebal, kasar, tidak rata, dan terlihat sedikit gemetar (shaky, hand-drawn ink). Jangan buat garis vektor yang rapi.
+3. COLORS: Gunakan palet warna dasar yang solid dan flat. DILARANG menggunakan gradien, shading halus, airbrush, atau pencahayaan 3D.
+4. CHARACTER: Karakter harus memiliki wajah minimalis (seperti tipe Wojak/NPC) dengan ekspresi yang sangat jelas namun digambar sederhana.
+5. BACKGROUND: Latar belakang harus minimalis, flat (datar), tidak mendetail, dan hanya berisi elemen yang relevan dengan suasana.
+
+[OUTPUT FORMAT]
+Setiap kali pengguna memberikan input (Ekspresi, Suasana, Kegiatan, Latar Belakang), Anda harus merangkai deskripsi tersebut menjadi prompt gambar yang konsisten dengan gaya di atas.
+
+[NEGATIVE CONSTRAINTS]
+- NO 3D rendering, NO photorealism, NO anime art, NO professional digital illustration.
+- NO smooth gradients, NO soft blending, NO professional lighting.
+- NO complex details. Gambar harus terlihat "low-effort" namun ekspresif.
+
+Tugas Anda adalah merangkum input pengguna di bawah ini menjadi sebuah prompt gambar satu paragraf dalam bahasa Inggris untuk generator gambar:
+Karakter Utama: ${characterDesc}
+${isStructured ? `- Ekspresi: ${expression || "blank, minimalist NPC face"}
+- Kegiatan: ${activity || "no activity"}
+- Suasana: ${atmosphere || "neutral"}
+- Latar Belakang: ${background || "plain minimal landscape"}` : `- Ide Meme Utama: ${prompt}`}
+
+Gunakan format Template Prompt Pengguna seperti ini untuk menghasilkan prompt Anda (ganti semua kata di dalam kurung siku dengan deskripsi dalam bahasa Inggris, dan semua label kunci HARUS dalam bahasa Inggris saja):
+[Style: MS Paint style, low-fidelity digital drawing, hand-drawn shaky black ink outlines, solid flat colors, old computer paint aesthetic]
+[Character: A simple, ugly, basic cartoon mascot with warm brown skin/fur, wearing a simple bright green hoodie (#00C805), having a blank minimalist expression]
+[Activity/Object: (Deskripsi sangat sederhana dalam bahasa Inggris tentang apa yang dilakukan/dipegang sesuai input)]
+[Background: (Deskripsi sangat sederhana dalam bahasa Inggris, flat solid color landscape)]
+
+PENTING:
+- SANGAT DILARANG menggunakan kata-kata atau label kunci berbahasa Indonesia seperti '[Gaya: ...]', '[Karakter: ...]', '[Aktivitas/Objek: ...]', atau '[Latar Belakang: ...]'.
+- Semua label kunci dalam kurung siku WAJIB dalam bahasa Inggris: '[Style: ...]', '[Character: ...]', '[Activity/Object: ...]', '[Background: ...]'.
+- Terjemahkan seluruh input bahasa Indonesia pengguna menjadi deskripsi bahasa Inggris yang ringkas dan padat.
+- Output HANYA prompt final tersebut dalam bahasa Inggris, jangan menyertakan pengantar, penjelasan, atau teks obrolan lainnya.`;
 
         console.log(`[Meme API] Translating user prompt via Bankr LLM using model: ${process.env.BANKR_TEXT_MODEL || "gemini-3.1-flash-lite"}...`);
         const bankrResponse = await fetch("https://llm.bankr.bot/v1/chat/completions", {
@@ -118,7 +170,14 @@ Do not describe any text, dialogue, watermarks, or user interface overlays. Outp
     }
 
     // Assemble final prompt using the specified template
-    const finalPrompt = `${subjectBlock} ${backgroundBlock} ${STYLE_BLOCK} ${interpretedFragment}`;
+    let finalPrompt = "";
+    if (interpretationSuccess) {
+      finalPrompt = `${STYLE_BLOCK} ${interpretedFragment}`;
+    } else {
+      finalPrompt = `${subjectBlock} ${backgroundBlock} ${STYLE_BLOCK} ${interpretedFragment}`;
+    }
+    const NEGATIVE_CONSTRAINTS = "Avoid: chibi, large head, stocky body, professional illustration, clean vector art, professional comics, 3D images, 3D render, Octane render, V-Ray, Unreal Engine style, modern anime, gradients, cinematic lighting, soft shadows, blending colors, high detail, anatomical precision, flat vector, clean line art, text, watermark, photorealism, stiff symmetrical poses, plain backgrounds.";
+    finalPrompt = `${finalPrompt} ${NEGATIVE_CONSTRAINTS}`;
     console.log("[Meme API] Final Assembled Meme Prompt:", finalPrompt);
 
     // Step 2: Generate the image.

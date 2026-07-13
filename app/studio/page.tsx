@@ -42,26 +42,28 @@ export default function StudioPage() {
   // --- AI RE-IMAGINATION STATES ---
   const [originalUploadedSrc, setOriginalUploadedSrc] = useState<string | null>(null);
   const [artStyle, setArtStyle] = useState<"normal" | "meme" | "cartoon" | "pixel">("normal");
+  const [accessory, setAccessory] = useState<"cowl" | "custom">("cowl");
+  const [customColor, setCustomColor] = useState<string>("golden");
   const [isReimagining, setIsReimagining] = useState(false);
   const [reimagineProgress, setReimagineProgress] = useState<string | null>(null);
   const [watermarkEnabled, setWatermarkEnabled] = useState<boolean>(true);
 
   // --- DAILY RATE LIMIT STATES & HELPER ---
-  const [remainingGenerations, setRemainingGenerations] = useState<number>(2);
+  const [remainingGenerations, setRemainingGenerations] = useState<number>(3);
 
   const getRemainingGenerationsCount = (): number => {
-    if (typeof window === "undefined") return 2;
+    if (typeof window === "undefined") return 3;
     const now = Date.now();
     const oneDayAgo = now - 24 * 60 * 60 * 1000;
     const stored = localStorage.getItem("robify_generations_limit");
     const manualPaid = parseInt(localStorage.getItem("robify_manual_paid_count") || "0");
-    if (!stored) return 2 + manualPaid;
+    if (!stored) return 3 + manualPaid;
     try {
       const timestamps: number[] = JSON.parse(stored);
       const recent = timestamps.filter((t: number) => t > oneDayAgo);
-      return Math.max(0, 2 + manualPaid - recent.length);
+      return Math.max(0, 3 + manualPaid - recent.length);
     } catch (e) {
-      return 2 + manualPaid;
+      return 3 + manualPaid;
     }
   };
 
@@ -88,7 +90,7 @@ export default function StudioPage() {
     const recent = timestamps.filter((t: number) => t > oneDayAgo);
     recent.push(now);
     localStorage.setItem("robify_generations_limit", JSON.stringify(recent));
-    setRemainingGenerations(Math.max(0, 2 + manualPaid - recent.length));
+    setRemainingGenerations(Math.max(0, 3 + manualPaid - recent.length));
   };
 
   // --- GALLERY CREATIONS STATE ---
@@ -204,7 +206,7 @@ export default function StudioPage() {
   const connectWallet = async () => {
     if (typeof window === "undefined") return;
     if (!(window as any).ethereum) {
-      setErrorMessage("No Web3 wallet extension detected! If you are viewing this inside the AI Studio preview pane, browser wallet extensions (MetaMask, Coinbase Wallet, etc.) are blocked inside nested iframes. Please click the 'Open in New Tab' icon at the top right, or open the app direct URL in a full browser tab to connect your wallet.");
+      setErrorMessage("Web3 wallet not detected! If you are on a mobile device, please open this website inside your wallet app's built-in browser (e.g. MetaMask, Trust Wallet, Coinbase Wallet).");
       return;
     }
     setIsConnecting(true);
@@ -287,7 +289,7 @@ export default function StudioPage() {
                   symbol: "ETH",
                   decimals: 18,
                 },
-                rpcUrls: ["https://rpc.robinhoodchain.com"],
+                rpcUrls: ["https://rpc.mainnet.chain.robinhood.com"],
                 blockExplorerUrls: ["https://robinhoodchain.blockscout.com"],
               },
             ],
@@ -301,14 +303,14 @@ export default function StudioPage() {
   };
 
   const paySingleGeneration = async () => {
+    const isBase = selectedPaymentNetwork === "base";
+    const requiredChainId = isBase ? "8453" : "4663";
+    const networkName = isBase ? "Base Mainnet" : "Robinhood Chain";
+
     if (typeof window === "undefined" || !(window as any).ethereum || !walletAddress) {
       setErrorMessage("Please connect your Web3 wallet first!");
       return;
     }
-
-    const isBase = selectedPaymentNetwork === "base";
-    const requiredChainId = isBase ? "8453" : "4663";
-    const networkName = isBase ? "Base Mainnet" : "Robinhood Chain";
 
     if (chainId !== requiredChainId) {
       setErrorMessage(`Please switch your wallet network to ${networkName} to proceed with the transaction.`);
@@ -466,7 +468,8 @@ export default function StudioPage() {
         body: JSON.stringify({
           image: sourceImage,
           style: artStyle,
-          accessory: "cowl",
+          accessory,
+          customColor,
           isPremium: paidThisTurn,
         }),
       });
@@ -527,7 +530,7 @@ export default function StudioPage() {
         } else {
           setSuccessMessage(paidThisTurn 
             ? "Sukses! Pembayaran terverifikasi dan AI Avatar Anda berhasil dibuat!"
-            : `Success! We have beautifully woven a cozy green hood onto your photo in "${artStyle}" style.`
+            : `Success! We have beautifully woven a cozy ${accessory === "custom" ? customColor : "green"} $Hoodie onto your photo in "${artStyle}" style.`
           );
         }
       } else {
@@ -741,7 +744,7 @@ export default function StudioPage() {
                 <span className="text-[10px] px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-md font-mono uppercase tracking-wider font-extrabold">Studio</span>
               </h1>
               <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold group-hover:text-zinc-400 transition-colors font-display">
-                Cozy Golden Hood Avatars • Back to Home
+                Stabilo Green $Hoodie Avatars • Back to Home
               </p>
             </div>
           </Link>
@@ -838,11 +841,11 @@ export default function StudioPage() {
                   </div>
 
                   <h3 className="text-lg font-bold text-white mb-2 tracking-tight font-display">
-                    Get your golden hood on! 🟡
+                    Get your stabilo green $Hoodie on! 🟢
                   </h3>
                   
                   <p className="text-sm text-zinc-400 max-w-sm mb-6 leading-relaxed">
-                    Drop your selfie here! No need to shower or dress up—we will digitally slap a legendary golden hood on your head so you can rule the Robinhood Chain. 😎🟡
+                    Drop your selfie or any image here! Our advanced AI scans the entire picture to perfectly overlay an iconic bright stabilo green $Hoodie with a signature black and white feather! 🟢🪶
                   </p>
 
                   <div className="inline-flex items-center gap-1.5 text-xs text-black font-extrabold bg-[#E2B53E] px-5.5 py-3 rounded-xl hover:bg-amber-400 transition-all shadow-[0_4px_20px_rgba(226,181,62,0.2)] font-display">
@@ -943,11 +946,11 @@ export default function StudioPage() {
             
             <div className="space-y-6">
               <div>
-                <span className="text-[11px] font-bold text-[#E2B53E] uppercase tracking-widest block mb-1 font-display">
+                <span className="text-[11px] font-bold text-[#10B981] uppercase tracking-widest block mb-1 font-display">
                   1. Choose Art Style
                 </span>
                 <p className="text-xs text-zinc-400 leading-relaxed">
-                  Choose your aesthetic motif. Our designer-tuned generator will naturally weave a custom golden cowl hood that perfectly matches your portrait.
+                  Choose your aesthetic motif. Our advanced AI scans the entire composition and precisely overlays our signature stabilo green $Hoodie with the classic Robinhood black and white feather!
                 </p>
               </div>
 
@@ -977,6 +980,98 @@ export default function StudioPage() {
                     </div>
                   </button>
                 ))}
+              </div>
+
+              <div className="pt-4 border-t border-zinc-800/40 space-y-4">
+                <div>
+                  <span className="text-[11px] font-bold text-[#10B981] uppercase tracking-widest block mb-1 font-display">
+                    2. Choose Hoodie Design
+                  </span>
+                  <p className="text-xs text-zinc-400 leading-relaxed mb-3">
+                    Select between our signature Robinhood-themed Green Hoodie with Feather, or design your own customized hoodie style!
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <button
+                    type="button"
+                    disabled={isReimagining}
+                    onClick={() => setAccessory("cowl")}
+                    className={`p-3.5 rounded-2xl border flex items-center gap-3 transition-all text-left cursor-pointer font-display ${
+                      accessory === "cowl"
+                        ? "border-[#10B981] bg-[#10B981]/5 text-white"
+                        : "border-zinc-800/80 hover:border-zinc-700 bg-zinc-950/30 text-zinc-400 hover:text-white"
+                    } ${isReimagining ? "opacity-40 cursor-not-allowed" : ""}`}
+                  >
+                    <span className="text-xl">🟢</span>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-xs font-bold block">Classic $Hoodie</span>
+                      <span className="text-[9px] text-zinc-500 font-medium block leading-none mt-1">Stabilo Green + Feather</span>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={isReimagining}
+                    onClick={() => setAccessory("custom")}
+                    className={`p-3.5 rounded-2xl border flex items-center gap-3 transition-all text-left cursor-pointer font-display ${
+                      accessory === "custom"
+                        ? "border-[#E2B53E] bg-[#E2B53E]/5 text-white"
+                        : "border-zinc-800/80 hover:border-zinc-700 bg-zinc-950/30 text-zinc-400 hover:text-white"
+                    } ${isReimagining ? "opacity-40 cursor-not-allowed" : ""}`}
+                  >
+                    <span className="text-xl">🎨</span>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-xs font-bold block">Custom Hoodie</span>
+                      <span className="text-[9px] text-zinc-500 font-medium block leading-none mt-1">Choose Custom Color</span>
+                    </div>
+                  </button>
+                </div>
+
+                {accessory === "custom" && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-3.5 space-y-2.5 p-3.5 rounded-2xl bg-zinc-900/30 border border-zinc-800/80"
+                  >
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
+                      Type Custom Color or Style Description
+                    </label>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <input
+                        type="text"
+                        disabled={isReimagining}
+                        value={customColor}
+                        onChange={(e) => setCustomColor(e.target.value)}
+                        placeholder="e.g., golden, luxurious royal gold, dark crimson red..."
+                        className="flex-1 bg-zinc-950/80 border border-zinc-800 focus:border-[#E2B53E] text-xs text-zinc-200 placeholder-zinc-600 px-3 py-2 rounded-xl focus:outline-none transition-all"
+                      />
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {[
+                        { name: "Golden", value: "luxury royal golden" },
+                        { name: "Gold Leather", value: "golden scale leather" },
+                        { name: "Neon Blue", value: "bright neon blue cyberpunk" },
+                        { name: "Crimson Red", value: "dark crimson red" },
+                        { name: "Holographic", value: "shimmering holographic chrome" },
+                      ].map((preset) => (
+                        <button
+                          key={preset.value}
+                          type="button"
+                          disabled={isReimagining}
+                          onClick={() => setCustomColor(preset.value)}
+                          className={`text-[9px] px-2 py-1 rounded-md border transition-all cursor-pointer font-medium ${
+                            customColor === preset.value
+                              ? "border-[#E2B53E] bg-[#E2B53E]/10 text-[#E2B53E]"
+                              : "border-zinc-800 hover:border-zinc-700 bg-zinc-950/20 text-zinc-400 hover:text-zinc-200"
+                          }`}
+                        >
+                          {preset.name}
+                        </button>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
               </div>
 
               <div className="pt-4 flex items-center justify-between border-t border-zinc-800/40">
@@ -1011,13 +1106,13 @@ export default function StudioPage() {
                       <Sparkles className="w-4 h-4 text-[#E2B53E]" />
                       <span>
                         {imageSrc && originalUploadedSrc !== imageSrc 
-                          ? "Your cozy golden hood avatar is ready!" 
-                          : "Ready to weave your cozy golden hood avatar."}
+                          ? `Your ${accessory === "custom" ? customColor : "stabilo green"} $Hoodie avatar is ready!` 
+                          : `Ready to weave your ${accessory === "custom" ? customColor : "stabilo green"} $Hoodie avatar.`}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-1.5 bg-[#E2B53E]/10 border border-[#E2B53E]/20 rounded-lg px-2.5 py-1 text-[11px] font-mono font-bold text-[#E2B53E]">
-                        Limit: {remainingGenerations}/2 today
+                      <div className="flex items-center gap-1.5 bg-[#10B981]/10 border border-[#10B981]/20 rounded-lg px-2.5 py-1 text-[11px] font-mono font-bold text-[#10B981]">
+                        Limit: {remainingGenerations}/3 today
                       </div>
                     </div>
                   </div>
@@ -1036,25 +1131,21 @@ export default function StudioPage() {
                 )}
                 
                 <button
-                  disabled={!imageSrc || isReimagining || (remainingGenerations <= 0 && originalUploadedSrc === imageSrc)}
+                  disabled={!imageSrc || isReimagining}
                   onClick={reimagineWithAI}
                   className={`flex-grow px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2.5 font-display ${
                     !imageSrc
                       ? "bg-zinc-950 border border-zinc-850 text-zinc-650 cursor-not-allowed"
                       : isReimagining
-                      ? "bg-[#E2B53E]/10 text-[#E2B53E] border border-[#E2B53E]/20 cursor-not-allowed animate-pulse"
-                      : remainingGenerations <= 0 && originalUploadedSrc === imageSrc
-                      ? "bg-zinc-900 border border-zinc-800 text-zinc-500 cursor-not-allowed"
-                      : "bg-[#E2B53E] text-black hover:scale-[1.01] shadow-[0_4px_25px_rgba(226,181,62,0.25)] cursor-pointer hover:bg-amber-400"
+                      ? "bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/20 cursor-not-allowed animate-pulse"
+                      : "bg-[#10B981] text-black hover:scale-[1.01] shadow-[0_4px_25px_rgba(16,185,129,0.25)] cursor-pointer hover:bg-emerald-400"
                   }`}
                   id="btn-trigger-reimagine"
                 >
                   <Sparkles className="w-4 h-4 shrink-0" />
                   {isReimagining 
                     ? "Weaving Hood..." 
-                    : remainingGenerations <= 0 && originalUploadedSrc === imageSrc 
-                    ? "Daily Limit Reached 🚫" 
-                    : "Weave My Golden Hood ✨"}
+                    : `Weave My ${accessory === "custom" ? "Custom" : "Green"} $Hoodie ✨`}
                 </button>
               </div>
             </div>
@@ -1140,7 +1231,7 @@ export default function StudioPage() {
         <div className="w-full max-w-7xl mt-4 px-1" id="notification-error-box">
           <div className="bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-2xl p-4 flex items-start gap-3 text-xs leading-relaxed">
             <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-500" />
-            <div>
+            <div className="whitespace-pre-line text-left">
               <span className="font-bold">Notice:</span> {errorMessage}
             </div>
           </div>
@@ -1151,7 +1242,7 @@ export default function StudioPage() {
         <div className="w-full max-w-7xl mt-4 px-1" id="notification-success-box">
           <div className="bg-[#E2B53E]/10 text-[#E2B53E] border border-[#E2B53E]/20 rounded-2xl p-4 flex items-start gap-3 text-xs leading-relaxed">
             <Check className="w-4 h-4 shrink-0 mt-0.5 text-[#E2B53E]" />
-            <div>
+            <div className="whitespace-pre-line text-left">
               <span className="font-bold">Perfect:</span> {successMessage}
             </div>
           </div>
@@ -1346,23 +1437,6 @@ export default function StudioPage() {
               </div>
 
               <div className="flex flex-col gap-2 pt-1 border-t border-zinc-800/40">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (typeof window !== "undefined") {
-                      localStorage.removeItem("robify_generations_limit");
-                      localStorage.removeItem("robify_manual_paid_count");
-                      setRemainingGenerations(getRemainingGenerationsCount());
-                      setSuccessMessage("🧪 Daily limits and paid counts successfully reset for testing!");
-                      setIsPaymentModalOpen(false);
-                    }
-                  }}
-                  className="w-full bg-[#E2B53E]/15 hover:bg-[#E2B53E]/20 text-[#E2B53E] font-bold text-xs uppercase tracking-wider rounded-xl py-3 border border-[#E2B53E]/25 transition-all flex items-center justify-center gap-2 cursor-pointer font-display"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  Reset Quota for Testing 🧪
-                </button>
-
                 <button
                   type="button"
                   onClick={() => setIsPaymentModalOpen(false)}

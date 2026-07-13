@@ -29,40 +29,103 @@ interface MemeGenerationResult {
 
 const MEME_PRESETS = [
   {
-    emoji: "📈",
-    title: "Expert Trader",
-    prompt: "A smug trader celebrating a tiny green candle in a massive sea of red downward charts, explaining to his friends that it's a bullish pattern.",
+    emoji: "🪑",
+    title: "Escobar Waiting",
+    prompt: "A hilarious parody of the Pablo Escobar waiting meme: our green-hoodie chibi cartoon mascot sitting alone on a wooden swing in an empty yard, looking depressed, staring blankly with giant wide funny eyes, waiting for the green candle.",
   },
   {
-    emoji: "💥",
-    title: "Deleted Staging",
-    prompt: "A developer in complete horror staring at a laptop with a giant red ERROR and smoking cables, realizing he accidentally dropped the staging database.",
+    emoji: "🔥",
+    title: "This Is Fine",
+    prompt: "A hilarious parody of the 'This Is Fine' meme: our green-hoodie chibi mascot sitting calmly at a wooden table sipping coffee, smiling with a goofy blank expression while the room behind him is engulfed in chaotic bright red flames.",
+  },
+  {
+    emoji: "👀",
+    title: "Distracted Boy",
+    prompt: "A parody of the distracted boyfriend meme: a blue-skin cartoon creature walking with his companion, but turning back with a funny hyper-exaggerated expression to stare longingly at our green-hoodie chibi mascot walking past.",
+  },
+  {
+    emoji: "👉",
+    title: "Spiderman Point",
+    prompt: "A parody of the Spiderman pointing meme: two identical green-hoodie chibi mascots standing in an industrial room pointing directly at each other with extremely shocked, goofy, and exaggerated facial expressions.",
+  },
+  {
+    emoji: "🙅‍♂️",
+    title: "Hotline Bling",
+    prompt: "Split panel parody of Drake Hotline Bling meme: top panel has a blue character looking away in complete disgust; bottom panel has our green-hoodie chibi creature smiling warmly with a giant grin pointing with absolute approval.",
+  },
+  {
+    emoji: "📈",
+    title: "Expert Trader",
+    prompt: "A smug green-hoodie chibi mascot drawing a massive vertical green line directly on his laptop screen with a green crayon while all charts in the background are crashing down in red.",
+  }
+];
+
+const LAB_PRESETS = [
+  {
+    emoji: "📉",
+    title: "Portfolio Dip",
+    description: "Deep Red Portfolio",
+    expression: "Crying hysterically with tears streaming down, eyes wide in panic",
+    activity: "Staring at a long red candle chart plummeting straight down",
+    atmosphere: "Extremely panicked, highly stressed, hopeless, and resigning to fate",
+    background: "In a chaotic messy home office with cracked dusty computer monitors"
+  },
+  {
+    emoji: "🧘",
+    title: "HODL Waiter",
+    description: "Waiting for Bull Run",
+    expression: "Forced hollow smile, tired weary eyes but trying to be brave",
+    activity: "Sitting cross-legged, meditating completely frozen with spiderwebs growing on head",
+    atmosphere: "Extremely patient but suffering in silence, peaceful on the outside but crying inside",
+    background: "A barren gersang desert landscape under dark gray overcast clouds"
   },
   {
     emoji: "🤑",
-    title: "Bull Run FOMO",
-    prompt: "A cartoon mascot checking 5 different laptop and phone screens simultaneously with massive green rising charts, full of excitement and panic.",
+    title: "Meme Coin FOMO",
+    description: "Shitcoin FOMO Mania",
+    expression: "Eyes bulging with excitement and glowing green dollar ($) symbols",
+    activity: "Panic-typing on a smartphone with both thumbs so fast it's smoking",
+    atmosphere: "Super hyper, greedy, obsessed with getting rich overnight",
+    background: "Deep cosmic outer space with shiny crypto coins floating everywhere"
   },
   {
-    emoji: "🤖",
-    title: "AI Assistant",
-    prompt: "A lazy developer relaxing in a hammock drinking coconut water while a small futuristic robot with glowing screens writes all his code.",
+    emoji: "🤦",
+    title: "Panic Sell Regret",
+    description: "Sold at the Bottom",
+    expression: "Slapping own forehead hard, shocked expression with mouth wide open",
+    activity: "Looking at a notification showing successful sell order at the absolute bottom price",
+    atmosphere: "Filled with regret, feeling foolish, stunned and sad looking at the chart",
+    background: "A massive green candle immediately shooting up vertically right after selling"
   },
   {
-    emoji: "🛡️",
-    title: "Rugpull Survivor",
-    prompt: "A battle-scarred warrior standing proudly in a chaotic market storm, holding up a bright green shield while red charts crash all around.",
+    emoji: "😴",
+    title: "Zombie Dev",
+    description: "Sleep Deprived Developer",
+    expression: "Dull tired eyes with extremely thick dark circles, pale exhausted face",
+    activity: "Holding a jumbo coffee mug and half-consciously typing code on a laptop",
+    atmosphere: "Endlessly exhausted, groggy, struggling to deploy the dApp before sunrise",
+    background: "A pitch-black bedroom where the only light comes from a screen full of red error text"
   },
   {
-    emoji: "📉",
-    title: "Gas Fee Pain",
-    prompt: "A cute character crying in disbelief looking at a blockchain gas fee quote that is 10 times higher than his actual transaction amount.",
+    emoji: "👑",
+    title: "Giga Chad Trader",
+    description: "Zen Relaxed Trader",
+    expression: "Smiling broadly with absolute confidence, sharp chiseled masculine jawline",
+    activity: "Laying back on a lounge chair sipping fresh coconut juice straight from the fruit",
+    atmosphere: "Completely relaxed, calm, unbothered by daily market price fluctuations",
+    background: "A gorgeous tropical beach with waving palm trees and a golden sunset"
   }
 ];
 
 export default function MemeGeneratorPage() {
   // --- GENERAL STATES ---
+  const [inputMode, setInputMode] = useState<"free-text" | "structured-lab">("structured-lab");
   const [memePrompt, setMemePrompt] = useState("");
+  const [memeExpression, setMemeExpression] = useState("crying hysterically with tears streaming down, eyes wide in panic");
+  const [memeActivity, setMemeActivity] = useState("staring at a long red candle chart plummeting straight down");
+  const [memeAtmosphere, setMemeAtmosphere] = useState("extremely panicked, highly stressed, hopeless, and resigning to fate");
+  const [memeBackground, setMemeBackground] = useState("in a chaotic messy home office with cracked dusty computer monitors");
+
   const [formulaType, setFormulaType] = useState<"green-hoodie" | "blue-hoodie" | "custom-hoodie">("green-hoodie");
   const [customSubject, setCustomSubject] = useState("A cute cartoon kitten");
   const [customColor, setCustomColor] = useState("bright green");
@@ -137,6 +200,7 @@ export default function MemeGeneratorPage() {
   const [walletBalance, setWalletBalance] = useState<string | null>(null);
   const [chainId, setChainId] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState<boolean>(false);
+
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isPaying, setIsPaying] = useState<boolean>(false);
   const [selectedPaymentNetwork, setSelectedPaymentNetwork] = useState<"base" | "robinhood">("base");
@@ -168,7 +232,7 @@ export default function MemeGeneratorPage() {
   const connectWallet = async () => {
     if (typeof window === "undefined") return;
     if (!(window as any).ethereum) {
-      setErrorMessage("No Web3 wallet extension detected! If you are viewing this inside the AI Studio preview pane, browser wallet extensions (MetaMask, Coinbase Wallet, etc.) are blocked inside nested iframes. Please click the 'Open in New Tab' icon at the top right, or open the app direct URL in a full browser tab to connect your wallet.");
+      setErrorMessage("Web3 wallet not detected! If you are on a mobile device, please open this website inside your wallet app's built-in browser (e.g. MetaMask, Trust Wallet, Coinbase Wallet).");
       return;
     }
     setIsConnecting(true);
@@ -241,7 +305,7 @@ export default function MemeGeneratorPage() {
                 chainId: "0x1237",
                 chainName: "Robinhood Chain",
                 nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
-                rpcUrls: ["https://rpc.robinhoodchain.com"],
+                rpcUrls: ["https://rpc.mainnet.chain.robinhood.com"],
                 blockExplorerUrls: ["https://robinhoodchain.blockscout.com"],
               },
             ],
@@ -254,14 +318,14 @@ export default function MemeGeneratorPage() {
   };
 
   const paySingleGeneration = async () => {
+    const isBase = selectedPaymentNetwork === "base";
+    const requiredChainId = isBase ? "8453" : "4663";
+    const networkName = isBase ? "Base Mainnet" : "Robinhood Chain";
+
     if (!walletAddress) {
       setErrorMessage("Please connect your wallet first!");
       return;
     }
-
-    const isBase = selectedPaymentNetwork === "base";
-    const requiredChainId = isBase ? "8453" : "4663";
-    const networkName = isBase ? "Base Mainnet" : "Robinhood Chain";
 
     if (chainId !== requiredChainId) {
       setErrorMessage(`Please switch to ${networkName} first.`);
@@ -343,9 +407,17 @@ export default function MemeGeneratorPage() {
 
   // --- CORE GENERATION ACTION ---
   const generateMeme = async () => {
-    if (!memePrompt.trim()) {
-      setErrorMessage("Meme idea is empty! Please write a description of your meme idea first.");
-      return;
+    const isLab = inputMode === "structured-lab";
+    if (isLab) {
+      if (!memeExpression.trim() && !memeActivity.trim() && !memeAtmosphere.trim() && !memeBackground.trim()) {
+        setErrorMessage("Meme Lab elements are empty! Please fill out at least one element box.");
+        return;
+      }
+    } else {
+      if (!memePrompt.trim()) {
+        setErrorMessage("Meme idea is empty! Please write a description of your meme idea first.");
+        return;
+      }
     }
 
     const currentRemaining = getRemainingGenerationsCount();
@@ -365,7 +437,11 @@ export default function MemeGeneratorPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: memePrompt,
+          prompt: isLab ? "" : memePrompt,
+          expression: isLab ? memeExpression : "",
+          activity: isLab ? memeActivity : "",
+          atmosphere: isLab ? memeAtmosphere : "",
+          background: isLab ? memeBackground : "",
           formulaType,
           customSubject,
           customColor,
@@ -557,11 +633,46 @@ export default function MemeGeneratorPage() {
   }, [generatedImage, topText, bottomText, renderMemeText]);
 
   const downloadMeme = () => {
-    if (!canvasRef.current) return;
-    const link = document.createElement("a");
-    link.download = `robify-meme-${Date.now()}.jpg`;
-    link.href = canvasRef.current.toDataURL("image/jpeg", 0.95);
-    link.click();
+    if (!generatedImage || !canvasRef.current) return;
+    
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const img = new window.Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      canvas.width = 1024;
+      canvas.height = 1024;
+      ctx.clearRect(0, 0, 1024, 1024);
+      
+      // Draw image
+      ctx.drawImage(img, 0, 0, 1024, 1024);
+
+      // Draw top text overlay
+      if (topText.trim()) {
+        renderMemeText(ctx, topText, 100, true);
+      }
+      
+      // Draw bottom text overlay
+      if (bottomText.trim()) {
+        renderMemeText(ctx, bottomText, 924, false);
+      }
+
+      try {
+        const link = document.createElement("a");
+        link.download = `robify-meme-${Date.now()}.jpg`;
+        link.href = canvas.toDataURL("image/jpeg", 0.95);
+        link.click();
+      } catch (err) {
+        console.error("toDataURL failed, downloading original base64 directly:", err);
+        const link = document.createElement("a");
+        link.download = `robify-meme-${Date.now()}.jpg`;
+        link.href = generatedImage;
+        link.click();
+      }
+    };
+    img.src = generatedImage;
   };
 
   const shareMemeOnX = () => {
@@ -679,13 +790,13 @@ export default function MemeGeneratorPage() {
                 {[
                   {
                     id: "green-hoodie",
-                    title: "Green Hoodie ($ROBIFY)",
+                    title: "Green Hoodie",
                     desc: "Draws character wearing the iconic bright green hoodie (#00C805) with loose drawstrings on a dark navy blue background.",
                     icon: "🟢"
                   },
                   {
                     id: "blue-hoodie",
-                    title: "Base Blue Mascot (No Hoodie)",
+                    title: "Blue Imagen (No Hoodie)",
                     desc: "Draws a cool, vibrant blue-skinned cartoon mascot in a glowing, futuristic digital command center with rich blue tech details.",
                     icon: "🔵"
                   },
@@ -772,100 +883,250 @@ export default function MemeGeneratorPage() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <h3 className="text-base font-black tracking-tight text-white uppercase flex items-center gap-2">
-                    2. Write Your Funny Meme Idea
+                    2. Define Your Meme Idea 🧪
                   </h3>
                   <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
-                    Describe the funny meme scene or joke you imagine. Our AI will optimize it using your selected system formula.
+                    Choose between the Element Combinator (recommended) or write custom text freely below.
                   </p>
+                  
+                  {/* MULTI-LANGUAGE TIP NOTE */}
+                  <div className="mt-3.5 bg-[#E2B53E]/10 border border-[#E2B53E]/20 rounded-2xl px-4 py-3 text-[11px] text-[#E2B53E] leading-relaxed flex items-start gap-2.5">
+                    <span className="text-base shrink-0 select-none">💡</span>
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-bold uppercase tracking-wider text-[10px]">Multi-Language Support Active</span>
+                      <span>
+                        You can write your inputs in <strong>any language</strong> (Indonesian, English, Spanish, etc.)! The AI Meme Lab will automatically translate, structure, and optimize it into a perfect English prompt for rendering.
+                      </span>
+                    </div>
+                  </div>
                 </div>
+                {inputMode === "free-text" && (
+                  <button
+                    type="button"
+                    onClick={handleSurpriseMe}
+                    disabled={isSuggesting}
+                    className={`shrink-0 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer border ${
+                      isSuggesting
+                        ? "bg-zinc-900/40 border-zinc-800 text-zinc-500 animate-pulse cursor-not-allowed"
+                        : "bg-[#10B981]/10 hover:bg-[#10B981]/20 border-[#10B981]/30 text-[#10B981] hover:scale-[1.02]"
+                    }`}
+                  >
+                    {isSuggesting ? (
+                      <>
+                        <div className="w-3.5 h-3.5 rounded-full border border-zinc-700 border-t-[#10B981] animate-spin" />
+                        Suggesting...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+                        Surprise Me
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+
+              {/* INPUT MODE SELECTION */}
+              <div className="grid grid-cols-2 bg-zinc-900/50 p-1 rounded-2xl border border-zinc-800/80 gap-1">
                 <button
                   type="button"
-                  onClick={handleSurpriseMe}
-                  disabled={isSuggesting}
-                  className={`shrink-0 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer border ${
-                    isSuggesting
-                      ? "bg-zinc-900/40 border-zinc-800 text-zinc-500 animate-pulse cursor-not-allowed"
-                      : "bg-[#10B981]/10 hover:bg-[#10B981]/20 border-[#10B981]/30 text-[#10B981] hover:scale-[1.02]"
+                  onClick={() => setInputMode("structured-lab")}
+                  className={`py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    inputMode === "structured-lab"
+                      ? "bg-[#E2B53E] text-black font-extrabold shadow-sm"
+                      : "text-zinc-400 hover:text-white"
                   }`}
                 >
-                  {isSuggesting ? (
-                    <>
-                      <div className="w-3.5 h-3.5 rounded-full border border-zinc-700 border-t-[#10B981] animate-spin" />
-                      Suggesting...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-3.5 h-3.5 animate-pulse" />
-                      Surprise Me
-                    </>
-                  )}
+                  🧪 Element Combinator
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setInputMode("free-text")}
+                  className={`py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    inputMode === "free-text"
+                      ? "bg-[#E2B53E] text-black font-extrabold shadow-sm"
+                      : "text-zinc-400 hover:text-white"
+                  }`}
+                >
+                  📝 Custom Free Text
                 </button>
               </div>
 
-              {/* Meme Preset Blueprints (Idea #4) */}
-              <div className="flex flex-col gap-2">
-                <span className="text-[10px] font-extrabold uppercase text-zinc-500 tracking-wider">
-                  Or load a popular situational template:
-                </span>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                  {MEME_PRESETS.map((preset, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => {
-                        setMemePrompt(preset.prompt);
-                        setSuccessMessage(`💡 Loaded situation preset: "${preset.title}"`);
-                      }}
-                      className={`group flex flex-col items-start gap-1 p-2.5 rounded-xl border text-left transition-all duration-350 cursor-pointer ${
-                        memePrompt === preset.prompt
-                          ? "bg-[#E2B53E]/15 border-[#E2B53E] text-white shadow-[0_4px_12px_rgba(226,181,62,0.08)]"
-                          : "bg-zinc-900/40 border-zinc-900 hover:border-zinc-800 hover:bg-zinc-900/80 text-zinc-300"
-                      }`}
-                    >
-                      <div className="flex items-center gap-1.5 w-full">
-                        <span className="text-sm shrink-0 group-hover:scale-110 transition-transform">{preset.emoji}</span>
-                        <span className="text-[10px] font-black tracking-tight uppercase leading-none truncate w-full group-hover:text-[#E2B53E] transition-colors font-display">
-                          {preset.title}
-                        </span>
-                      </div>
-                      <span className="text-[9px] text-zinc-500 leading-normal line-clamp-1 mt-1 font-mono">
-                        {preset.prompt}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <textarea
-                  value={memePrompt}
-                  onChange={(e) => setMemePrompt(e.target.value)}
-                  placeholder="e.g. A developer celebrating because his code compiled on the first try but then realizing he deleted the database..."
-                  rows={3}
-                  className="w-full text-sm bg-zinc-900 border border-zinc-800 focus:border-[#E2B53E]/50 rounded-2xl px-4 py-3 text-white placeholder-zinc-700 focus:outline-none transition-all"
-                />
-                
-                <div className="flex items-center justify-between text-xs text-zinc-500 px-1 mt-1">
-                  <div className="flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-[#E2B53E]" />
-                    <span>Optimized by Bankr</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="bg-[#E2B53E]/10 px-2 py-0.5 rounded text-[10px] text-[#E2B53E] font-mono font-bold">
-                      Daily Limit: {remainingGenerations}/3
+              {/* DYNAMIC FORM VIEWS */}
+              {inputMode === "structured-lab" ? (
+                <div className="flex flex-col gap-5">
+                  {/* Lab Presets Quick Select */}
+                  <div className="flex flex-col gap-2">
+                    <span className="text-[10px] font-extrabold uppercase text-zinc-500 tracking-wider">
+                      🧪 Quick Vibe Select (Lab Presets):
                     </span>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      {LAB_PRESETS.map((preset, idx) => {
+                        const isSelected = 
+                          memeExpression === preset.expression &&
+                          memeActivity === preset.activity &&
+                          memeAtmosphere === preset.atmosphere &&
+                          memeBackground === preset.background;
+                        return (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => {
+                              setMemeExpression(preset.expression);
+                              setMemeActivity(preset.activity);
+                              setMemeAtmosphere(preset.atmosphere);
+                              setMemeBackground(preset.background);
+                              setSuccessMessage(`💡 Loaded vibe: "${preset.title}" - ${preset.description}`);
+                            }}
+                            className={`group flex flex-col items-start gap-1 p-2.5 rounded-xl border text-left transition-all duration-300 cursor-pointer ${
+                              isSelected
+                                ? "bg-[#E2B53E]/15 border-[#E2B53E] text-white shadow-[0_4px_12px_rgba(226,181,62,0.08)]"
+                                : "bg-zinc-900/40 border-zinc-900/60 hover:border-zinc-800 hover:bg-zinc-900/80 text-zinc-300"
+                            }`}
+                          >
+                            <div className="flex items-center gap-1.5 w-full">
+                              <span className="text-sm shrink-0 group-hover:scale-110 transition-transform">{preset.emoji}</span>
+                              <span className="text-[10px] font-black tracking-tight uppercase leading-none truncate w-full group-hover:text-[#E2B53E] transition-colors font-display">
+                                {preset.title}
+                              </span>
+                            </div>
+                            <span className="text-[9px] text-zinc-500 leading-normal line-clamp-1 mt-1 font-mono">
+                              {preset.description}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-widest px-1">
+                        🤪 Character Expression
+                      </label>
+                      <input
+                        type="text"
+                        value={memeExpression}
+                        onChange={(e) => setMemeExpression(e.target.value)}
+                        className="w-full text-xs font-medium bg-zinc-900 border border-zinc-800/80 focus:border-[#E2B53E]/50 rounded-xl px-3.5 py-3 text-zinc-100 focus:outline-none transition-all placeholder-zinc-700"
+                        placeholder="e.g. menangis histeris / crying hysterically"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-widest px-1">
+                        🏃‍♂️ Activity & Object
+                      </label>
+                      <input
+                        type="text"
+                        value={memeActivity}
+                        onChange={(e) => setMemeActivity(e.target.value)}
+                        className="w-full text-xs font-medium bg-zinc-900 border border-zinc-800/80 focus:border-[#E2B53E]/50 rounded-xl px-3.5 py-3 text-zinc-100 focus:outline-none transition-all placeholder-zinc-700"
+                        placeholder="e.g. menatap grafik lilin candle merah / staring at a red crypto chart"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-widest px-1">
+                        ✨ Atmosphere & Mood
+                      </label>
+                      <input
+                        type="text"
+                        value={memeAtmosphere}
+                        onChange={(e) => setMemeAtmosphere(e.target.value)}
+                        className="w-full text-xs font-medium bg-zinc-900 border border-zinc-800/80 focus:border-[#E2B53E]/50 rounded-xl px-3.5 py-3 text-zinc-100 focus:outline-none transition-all placeholder-zinc-700"
+                        placeholder="e.g. panik tingkat dewa / extremely panicked and stressed"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-extrabold text-zinc-400 uppercase tracking-widest px-1">
+                        🖼️ Background Setting
+                      </label>
+                      <input
+                        type="text"
+                        value={memeBackground}
+                        onChange={(e) => setMemeBackground(e.target.value)}
+                        className="w-full text-xs font-medium bg-zinc-900 border border-zinc-800/80 focus:border-[#E2B53E]/50 rounded-xl px-3.5 py-3 text-zinc-100 focus:outline-none transition-all placeholder-zinc-700"
+                        placeholder="e.g. di dalam ruang kerja yang kacau / in a messy office room"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-5">
+                  {/* Meme Preset Blueprints (Idea #4) */}
+                  <div className="flex flex-col gap-2">
+                    <span className="text-[10px] font-extrabold uppercase text-zinc-500 tracking-wider">
+                      Or load a popular situational template:
+                    </span>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      {MEME_PRESETS.map((preset, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => {
+                            setMemePrompt(preset.prompt);
+                            setSuccessMessage(`💡 Loaded situation preset: "${preset.title}"`);
+                          }}
+                          className={`group flex flex-col items-start gap-1 p-2.5 rounded-xl border text-left transition-all duration-350 cursor-pointer ${
+                            memePrompt === preset.prompt
+                              ? "bg-[#E2B53E]/15 border-[#E2B53E] text-white shadow-[0_4px_12px_rgba(226,181,62,0.08)]"
+                              : "bg-zinc-900/40 border-zinc-900 hover:border-zinc-800 hover:bg-zinc-900/80 text-zinc-300"
+                          }`}
+                        >
+                          <div className="flex items-center gap-1.5 w-full">
+                            <span className="text-sm shrink-0 group-hover:scale-110 transition-transform">{preset.emoji}</span>
+                            <span className="text-[10px] font-black tracking-tight uppercase leading-none truncate w-full group-hover:text-[#E2B53E] transition-colors font-display">
+                              {preset.title}
+                            </span>
+                          </div>
+                          <span className="text-[9px] text-zinc-500 leading-normal line-clamp-1 mt-1 font-mono">
+                            {preset.prompt}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <textarea
+                      value={memePrompt}
+                      onChange={(e) => setMemePrompt(e.target.value)}
+                      placeholder="e.g. A developer celebrating because his code compiled on the first try but then realizing he deleted the database..."
+                      rows={3}
+                      className="w-full text-sm bg-zinc-900 border border-zinc-800 focus:border-[#E2B53E]/50 rounded-2xl px-4 py-3 text-white placeholder-zinc-700 focus:outline-none transition-all"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* BOTTOM CONTROL ROW WITH REMAINING LIMIT */}
+              <div className="flex items-center justify-between text-xs text-zinc-500 px-1 mt-1">
+                <div className="flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-[#E2B53E]" />
+                  <span>Optimized by Bankr AI Meme Lab</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="bg-[#E2B53E]/10 px-2 py-0.5 rounded text-[10px] text-[#E2B53E] font-mono font-bold">
+                    Daily Limit: {remainingGenerations}/3
+                  </span>
                 </div>
               </div>
 
               <button
                 onClick={generateMeme}
-                disabled={isGenerating || !memePrompt.trim()}
+                disabled={
+                  isGenerating || 
+                  (inputMode === "free-text" 
+                    ? !memePrompt.trim() 
+                    : (!memeExpression.trim() && !memeActivity.trim() && !memeAtmosphere.trim() && !memeBackground.trim()))
+                }
                 className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2.5 font-display ${
                   isGenerating 
                     ? "bg-[#E2B53E]/20 text-[#E2B53E] border border-[#E2B53E]/20 animate-pulse cursor-not-allowed"
-                    : !memePrompt.trim()
-                    ? "bg-zinc-900 border border-zinc-800 text-zinc-550 cursor-not-allowed"
+                    : (inputMode === "free-text" ? !memePrompt.trim() : (!memeExpression.trim() && !memeActivity.trim() && !memeAtmosphere.trim() && !memeBackground.trim()))
+                    ? "bg-zinc-900 border border-zinc-800 text-zinc-500 cursor-not-allowed"
                     : "bg-[#E2B53E] text-black hover:scale-[1.01] shadow-[0_4px_25px_rgba(226,181,62,0.2)] hover:bg-amber-400 cursor-pointer"
                 }`}
               >
@@ -1158,7 +1419,7 @@ export default function MemeGeneratorPage() {
         <div className="w-full max-w-7xl mt-4 px-1">
           <div className="bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-2xl p-4 flex items-start gap-3 text-xs leading-relaxed">
             <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-500" />
-            <div>
+            <div className="whitespace-pre-line text-left">
               <span className="font-bold">Notice:</span> {errorMessage}
             </div>
           </div>
@@ -1169,7 +1430,7 @@ export default function MemeGeneratorPage() {
         <div className="w-full max-w-7xl mt-4 px-1">
           <div className="bg-[#E2B53E]/10 text-[#E2B53E] border border-[#E2B53E]/20 rounded-2xl p-4 flex items-start gap-3 text-xs leading-relaxed">
             <Check className="w-4 h-4 shrink-0 mt-0.5 text-[#E2B53E]" />
-            <div>
+            <div className="whitespace-pre-line text-left">
               <span className="font-bold">Perfect:</span> {successMessage}
             </div>
           </div>
@@ -1278,23 +1539,6 @@ export default function MemeGeneratorPage() {
               </div>
 
               <div className="flex flex-col gap-2 pt-1 border-t border-zinc-800/40">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (typeof window !== "undefined") {
-                      localStorage.removeItem("robify_generations_limit");
-                      localStorage.removeItem("robify_manual_paid_count");
-                      setRemainingGenerations(getRemainingGenerationsCount());
-                      setSuccessMessage("🧪 Daily limits and paid counts successfully reset for testing!");
-                      setIsPaymentModalOpen(false);
-                    }
-                  }}
-                  className="w-full bg-[#E2B53E]/15 hover:bg-[#E2B53E]/20 text-[#E2B53E] font-bold text-xs uppercase tracking-wider rounded-xl py-3 border border-[#E2B53E]/25 transition-all flex items-center justify-center gap-2 cursor-pointer font-display"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  Reset Quota for Testing 🧪
-                </button>
-
                 <button
                   type="button"
                   onClick={() => setIsPaymentModalOpen(false)}
